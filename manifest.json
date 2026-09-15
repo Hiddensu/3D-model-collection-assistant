@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "3D 模型收藏助手",
+  "version": "3.4.8",
+  "description": "统一收藏各大平台 3D 模型，支持GIF动图封面、有道免Key翻译、自定义分组",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": [
+    "https://makerworld.com/*",
+    "https://makerworld.com.cn/*",
+    "https://www.printables.com/*",
+    "https://printables.com/*",
+    "https://www.thingiverse.com/*",
+    "https://thingiverse.com/*",
+    "https://thangs.com/*",
+    "https://cults3d.com/*",
+    "https://*.cults3d.com/*",
+    "https://fanyi.youdao.com/*",
+    "https://api.mymemory.translated.net/*",
+    "https://translate.googleapis.com/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "3D 模型收藏助手",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://makerworld.com/*",
+        "https://makerworld.com.cn/*",
+        "https://*.printables.com/*",
+        "https://*.thingiverse.com/*",
+        "https://*.thangs.com/*",
+        "https://*.cults3d.com/*"
+      ],
+      "js": ["content/content.js"],
+      "css": ["content/content.css"],
+      "run_at": "document_end"
+    }
+  ]
+}
