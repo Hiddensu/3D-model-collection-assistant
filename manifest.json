@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "3D 模型收藏助手",
-  "version": "3.4.8",
-  "description": "统一收藏各大平台 3D 模型，支持GIF动图封面、有道免Key翻译、自定义分组",
+  "version": "3.6.2",
+  "description": "统一收藏各大平台 3D 模型，支持高清封面、GIF动图、多通道免Key翻译、中英文切换与自定义分组",
   "permissions": ["storage", "activeTab"],
   "host_permissions": [
     "https://makerworld.com/*",

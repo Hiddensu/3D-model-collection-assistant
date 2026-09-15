@@ -1,9 +1,11 @@
 (function () {
   'use strict';
 
+  let currentLang = 'zh';
+
   function requestTranslate(text) {
     return new Promise((resolve) => {
-      if (!text || /[\u4e00-\u9fa5]/.test(text)) {
+      if (currentLang === 'en' || !text || /[\u4e00-\u9fa5]/.test(text)) {
         return resolve(text);
       }
       chrome.runtime.sendMessage({ action: 'TRANSLATE', text }, (resp) => {
@@ -48,7 +50,7 @@
   }
 
   function cleanTitle(raw, platform, id) {
-    if (!raw) return `模型 ${id}`;
+    if (!raw) return `Model ${id}`;
     let title = raw;
 
     if (platform === 'cn' || platform === 'intl') {
@@ -69,7 +71,7 @@
     }
 
     title = title.replace(/^[\s"'“”‘’]+|[\s"'“”‘’]+$/g, '').trim();
-    return title || `模型 ${id}`;
+    return title || `Model ${id}`;
   }
 
   const INVALID_CREATORS = new Set([
@@ -100,22 +102,16 @@
         if (el) {
           let txt = el.innerText.replace(/[@\s]/g, '').trim();
           txt = txt.replace(/^\d+/, '').trim();
-          if (txt && !isInvalidCreator(txt)) {
-            return txt;
-          }
+          if (txt && !isInvalidCreator(txt)) return txt;
         }
       }
 
       const allUserLinks = Array.from(document.querySelectorAll('a[href*="/u/"], a[href*="/user/"]'));
       for (const link of allUserLinks) {
-        if (link.closest('header, nav, [class*="nav"], [class*="header"], [class*="sidebar"]')) {
-          continue;
-        }
+        if (link.closest('header, nav, [class*="nav"], [class*="header"], [class*="sidebar"]')) continue;
         let txt = link.innerText.replace(/[@\s]/g, '').trim();
         txt = txt.replace(/^\d+/, '').trim();
-        if (txt && !isInvalidCreator(txt)) {
-          return txt;
-        }
+        if (txt && !isInvalidCreator(txt)) return txt;
       }
       return '';
     }
@@ -170,9 +166,7 @@
   function sanitizeUrl(u) {
     if (!u) return '';
     u = u.trim();
-    if (u.startsWith('//')) {
-      u = 'https:' + u;
-    }
+    if (u.startsWith('//')) return 'https:' + u;
     return u;
   }
 
@@ -262,18 +256,14 @@
       for (const sel of heroSelectors) {
         const img = document.querySelector(sel);
         const s = getImgSrc(img);
-        if (s && !s.includes('placeholder') && !s.includes('avatar') && !s.includes('icon')) {
-          return s;
-        }
+        if (s && !s.includes('placeholder') && !s.includes('avatar') && !s.includes('icon')) return s;
       }
 
       const cdnImgs = Array.from(document.querySelectorAll('img[src*="cdn.thingiverse.com/renders"], img[src*="cdn.thingiverse.com/assets"]'));
       for (const img of cdnImgs) {
         const s = getImgSrc(img);
         if (!s.includes('avatar') && !s.includes('thumb') && !s.includes('icon')) {
-          if (img.naturalWidth > 150 || img.width > 150) {
-            return s;
-          }
+          if (img.naturalWidth > 150 || img.width > 150) return s;
         }
       }
       if (cdnImgs.length > 0) return getImgSrc(cdnImgs[0]);
@@ -288,9 +278,7 @@
     if (mainImg) {
       if (!mainImg.closest('[class*="recommend"], [class*="related"], [class*="similar"], [class*="model-card"]')) {
         const mainSrc = getImgSrc(mainImg);
-        if (mainSrc && !mainSrc.includes('avatar') && !mainSrc.includes('icon')) {
-          return mainSrc;
-        }
+        if (mainSrc && !mainSrc.includes('avatar') && !mainSrc.includes('icon')) return mainSrc;
       }
     }
 
@@ -312,7 +300,7 @@
       rawTitle = h1.innerText.trim();
     } else {
       const ogTitle = document.querySelector('meta[property="og:title"]')?.content;
-      rawTitle = ogTitle || document.title || `模型 ${id}`;
+      rawTitle = ogTitle || document.title || `Model ${id}`;
     }
 
     const titleOriginal = cleanTitle(rawTitle, platform, id);
@@ -345,6 +333,15 @@
     setTimeout(() => toast.classList.remove('show'), 2000);
   }
 
+  function updateFloatingBtnText(btn, isCollected) {
+    const textSpan = btn.querySelector('#mw-btn-text');
+    if (isCollected) {
+      textSpan.textContent = currentLang === 'en' ? 'Collected' : '已收藏';
+    } else {
+      textSpan.textContent = currentLang === 'en' ? 'Collect Model' : '收藏模型';
+    }
+  }
+
   function injectFloatingBtn() {
     const info = parsePlatformInfo();
     if (!info || document.getElementById('mw-floating-collect-btn')) return;
@@ -356,27 +353,29 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
       </svg>
-      <span id="mw-btn-text">收藏模型</span>
+      <span id="mw-btn-text"></span>
     `;
 
-    chrome.storage.local.get(['mw_collections'], (res) => {
+    chrome.storage.local.get(['mw_collections', 'mw_lang'], (res) => {
+      currentLang = res.mw_lang || 'zh';
       const list = res.mw_collections || [];
-      if (list.some(m => m.id === fullId)) {
-        btn.classList.add('collected');
-        btn.querySelector('#mw-btn-text').textContent = '已收藏';
-      }
+      const isCollected = list.some(m => m.id === fullId);
+      if (isCollected) btn.classList.add('collected');
+      updateFloatingBtnText(btn, isCollected);
     });
 
     btn.addEventListener('click', async () => {
       const rawModel = extractRawModel();
       if (!rawModel) {
-        showToast('未能识别到当前模型信息');
+        showToast(currentLang === 'en' ? 'Failed to extract model info' : '未能识别到当前模型信息');
         return;
       }
 
-      btn.querySelector('#mw-btn-text').textContent = '翻译中...';
-      const translatedTitle = await requestTranslate(rawModel.titleOriginal);
-      rawModel.title = translatedTitle;
+      btn.querySelector('#mw-btn-text').textContent = currentLang === 'en' ? 'Processing...' : '处理中...';
+      if (currentLang === 'zh') {
+        const translatedTitle = await requestTranslate(rawModel.titleOriginal);
+        rawModel.title = translatedTitle;
+      }
 
       chrome.storage.local.get(['mw_collections'], (res) => {
         let list = res.mw_collections || [];
@@ -386,15 +385,15 @@
           list.splice(index, 1);
           chrome.storage.local.set({ mw_collections: list }, () => {
             btn.classList.remove('collected');
-            btn.querySelector('#mw-btn-text').textContent = '收藏模型';
-            showToast('已取消收藏');
+            updateFloatingBtnText(btn, false);
+            showToast(currentLang === 'en' ? 'Removed from collection' : '已取消收藏');
           });
         } else {
           list.unshift(rawModel);
           chrome.storage.local.set({ mw_collections: list }, () => {
             btn.classList.add('collected');
-            btn.querySelector('#mw-btn-text').textContent = '已收藏';
-            showToast('收藏成功，已存入插件');
+            updateFloatingBtnText(btn, true);
+            showToast(currentLang === 'en' ? 'Saved to collection!' : '收藏成功，已存入插件');
           });
         }
       });
@@ -409,10 +408,14 @@
       if (!raw) {
         sendResponse({ model: null });
       } else {
-        requestTranslate(raw.titleOriginal).then(translated => {
-          raw.title = translated;
+        if (currentLang === 'zh') {
+          requestTranslate(raw.titleOriginal).then(translated => {
+            raw.title = translated;
+            sendResponse({ model: raw });
+          });
+        } else {
           sendResponse({ model: raw });
-        });
+        }
       }
       return true;
     }

@@ -34,7 +34,22 @@ body {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+}
+
+.lang-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #38bdf8;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  cursor: pointer;
+}
+
+.lang-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .header-link-btn {
@@ -43,7 +58,7 @@ body {
   color: #e2e8f0;
   border-radius: 4px;
   font-size: 11px;
-  padding: 2px 8px;
+  padding: 2px 7px;
   cursor: pointer;
 }
 
